@@ -1,8 +1,13 @@
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 
 class ServerUDP {
+   private static String broadcastIp;
    private static int clientPort = 9871;
    private static byte[] sendData = new byte[1024];
    private static char[] alphabet = new char[] {
@@ -11,11 +16,35 @@ class ServerUDP {
       'W', 'X', 'Y', 'Z'
    };
 
+   private static void loadEnvFile() throws IOException {
+      BufferedReader br = new BufferedReader(new FileReader(".env"));
+      try {
+         StringBuilder sb = new StringBuilder();
+         String line = br.readLine();
+
+         while (line != null) {
+            sb.append(line);
+            sb.append(System.lineSeparator());
+
+            if (line.startsWith("BROADCAST_IP")) {
+               broadcastIp = line.split("=")[1];
+               System.out.println(broadcastIp);
+            }
+
+            line = br.readLine();
+         }
+      } finally {
+         br.close();
+      }
+   }
+
    public static void main(String args[]) throws Exception {
+      loadEnvFile();
+
       DatagramSocket serverSocket = new DatagramSocket();
 
       while(true) {
-         InetAddress ipBroadcast = InetAddress.getByName("192.168.15.255");
+         InetAddress ipBroadcast = InetAddress.getByName(broadcastIp);
 
          // TODO: ver se todos os clientes responderam que podem comecar antes de enviar a letra
          sendLetter(serverSocket, ipBroadcast);
@@ -30,7 +59,7 @@ class ServerUDP {
 
       DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipBroadcast, clientPort);
       socket.send(sendPacket);
-      System.out.println("Enviado...");
+      System.out.println("Enviado letra " + randLetter);
 
       Thread.sleep(500);
    }
