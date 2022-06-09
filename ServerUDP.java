@@ -1,5 +1,4 @@
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.*;
@@ -9,7 +8,8 @@ import java.util.concurrent.ThreadLocalRandom;
 class ServerUDP {
    private static String broadcastIp;
    private static int clientPort = 9871;
-   private static int numberOfExpectedPlayers = 4;
+   private static int serverPort = 9872;
+   private static int numberOfExpectedPlayers = 1;
    private static byte[] sendData = new byte[1024];
    private static char[] alphabet = new char[] {
       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
@@ -42,32 +42,30 @@ class ServerUDP {
    public static void main(String args[]) throws Exception {
       loadEnvFile();
 
-      DatagramSocket serverSocket = new DatagramSocket();
+      DatagramSocket serverSocket = new DatagramSocket(serverPort);
 
       while(true) {
          InetAddress ipBroadcast = InetAddress.getByName(broadcastIp);
 
-         waitForAllPlayers();
+         waitForAllPlayers(serverSocket);
          sendLetter(serverSocket, ipBroadcast);
       }
    }
 
-   private static void waitForAllPlayers(){
+   private static void waitForAllPlayers(DatagramSocket socket) throws IOException {
       int numberOfReadyPlayers = 0;
       byte[] receiveConfirmation = new byte[1024];
-      DatagramSocket clientSocket = new DatagramSocket(clientPort);
 
       while(numberOfReadyPlayers < numberOfExpectedPlayers){
          DatagramPacket receivePacket = new DatagramPacket(receiveConfirmation, receiveConfirmation.length);
-         clientSocket.receive(receivePacket);
+         socket.receive(receivePacket);
 
          String playerStatus = new String(receivePacket.getData());
-         if (playerStatus.equals("ready")) {
-            numberOfReadyPlayers +=1;
+         System.out.println(playerStatus);
+         if (playerStatus.startsWith("ready")) {
+            numberOfReadyPlayers += 1;
          }
       }
-
-      clientSocket.close();
    }
 
    private static void sendLetter(DatagramSocket socket, InetAddress ipBroadcast) throws Exception {
@@ -80,6 +78,5 @@ class ServerUDP {
       socket.send(sendPacket);
       System.out.println("Enviado letra " + randLetter);
 
-      Thread.sleep(500);
    }
 }
