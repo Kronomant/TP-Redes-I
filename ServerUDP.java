@@ -9,6 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 class ServerUDP {
    private static String broadcastIp;
    private static int clientPort = 9871;
+   private static int numberOfExpectedPlayers = 4;
    private static byte[] sendData = new byte[1024];
    private static char[] alphabet = new char[] {
       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
@@ -46,9 +47,27 @@ class ServerUDP {
       while(true) {
          InetAddress ipBroadcast = InetAddress.getByName(broadcastIp);
 
-         // TODO: ver se todos os clientes responderam que podem comecar antes de enviar a letra
+         waitForAllPlayers();
          sendLetter(serverSocket, ipBroadcast);
       }
+   }
+
+   private static void waitForAllPlayers(){
+      int numberOfReadyPlayers = 0;
+      byte[] receiveConfirmation = new byte[1024];
+      DatagramSocket clientSocket = new DatagramSocket(clientPort);
+
+      while(numberOfReadyPlayers < numberOfExpectedPlayers){
+         DatagramPacket receivePacket = new DatagramPacket(receiveConfirmation, receiveConfirmation.length);
+         clientSocket.receive(receivePacket);
+
+         String playerStatus = new String(receivePacket.getData());
+         if (playerStatus.equals("ready")) {
+            numberOfReadyPlayers +=1;
+         }
+      }
+
+      clientSocket.close();
    }
 
    private static void sendLetter(DatagramSocket socket, InetAddress ipBroadcast) throws Exception {
