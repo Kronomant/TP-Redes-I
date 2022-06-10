@@ -60,7 +60,7 @@ class ServerUDP {
          DatagramPacket receivePacket = new DatagramPacket(receiveConfirmation, receiveConfirmation.length);
          socket.receive(receivePacket);
 
-         String playerStatus = new String(receivePacket.getData());
+         String playerStatus = new String(receivePacket.getData(), receivePacket.getOffset(), receivePacket.getLength());
          System.out.println(playerStatus);
          if (playerStatus.startsWith("ready")) {
             numberOfReadyPlayers += 1;
@@ -77,6 +77,5 @@ class ServerUDP {
       DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipBroadcast, clientPort);
       socket.send(sendPacket);
       System.out.println("Enviado letra " + randLetter);
-
    }
 }

@@ -25,7 +25,7 @@ class ClienteUDP {
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             clientSocket.receive(receivePacket);
 
-            String received = new String(receivePacket.getData());
+            String received = new String(receivePacket.getData(), receivePacket.getOffset(), receivePacket.getLength());
             if (received.startsWith("startLetter=")) {
                String letter = received.split("=")[1];
                System.out.println("Letra: " + letter);
@@ -72,7 +72,6 @@ class ClienteUDP {
          ipServer = InetAddress.getByName(serverIP);
          DatagramPacket sendPacket = new DatagramPacket(ready, ready.length, ipServer, serverPort);
          clientSocket.send(sendPacket);
-         System.out.println("sent ready");
       } catch (IOException e) {
          e.printStackTrace();
       }
