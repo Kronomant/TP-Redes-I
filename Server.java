@@ -3,6 +3,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
+import java.security.KeyStore.Entry;
+import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 class Server {
@@ -12,6 +14,7 @@ class Server {
         'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
         'W', 'X', 'Y', 'Z'
     };
+    private static HashMap<String, String> answers = new HashMap<>();
 
     public static void main(String args[]) throws Exception {
         Variables.loadFromEnv();
@@ -22,25 +25,42 @@ class Server {
             waitForAllPlayers(serverSocketUdp);
             sendLetter(serverSocketUdp);
             waitForAnswers();
+            validateAnswers();
+            sendRankingAndAnswers();
 
             serverSocketUdp.close();
         }
     }
 
+    private static void sendRankingAndAnswers() {
+    }
+
+    private static void validateAnswers() {}
+
     private static void waitForAnswers() throws IOException {
-        ServerSocket socket = new ServerSocket(Variables.serverPortTcp);
+        int numberOfAnswers = 0;
 
-        Socket conexao = socket.accept();
-        BufferedReader entrada = new BufferedReader(new InputStreamReader(conexao.getInputStream()));
+        while (numberOfAnswers < numberOfExpectedPlayers) {
+            ServerSocket socket = new ServerSocket(Variables.serverPortTcp);
 
-        String str = entrada.readLine();
-        System.out.println("Resposta: " + str);
+            Socket conexao = socket.accept();
+            BufferedReader entrada = new BufferedReader(new InputStreamReader(conexao.getInputStream()));
 
-        DataOutputStream saida = new DataOutputStream(conexao.getOutputStream());
-        saida.writeBytes("ok");
+            String str = entrada.readLine();
+            String hostName = conexao.getInetAddress().getCanonicalHostName(); 
+            
+            answers.put(hostName, str);
 
-        conexao.close();
-        socket.close();
+            DataOutputStream saida = new DataOutputStream(conexao.getOutputStream());
+            saida.writeBytes("ok");
+
+            conexao.close();
+            socket.close();
+
+            numberOfAnswers += 1;
+        }
+
+        System.out.println(answers);
     }
 
     private static void waitForAllPlayers(DatagramSocket socket) throws IOException {
@@ -51,8 +71,11 @@ class Server {
             DatagramPacket receivePacket = new DatagramPacket(receiveConfirmation, receiveConfirmation.length);
             socket.receive(receivePacket);
 
-            String playerStatus = new String(receivePacket.getData(), receivePacket.getOffset(),
-                    receivePacket.getLength());
+            String playerStatus = new String(
+                receivePacket.getData(),
+                receivePacket.getOffset(),
+                receivePacket.getLength()
+            );
             System.out.println(playerStatus);
             if (playerStatus.startsWith("ready")) {
                 numberOfReadyPlayers += 1;

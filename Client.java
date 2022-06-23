@@ -7,31 +7,35 @@ import java.net.*;
 import view.TelaCliente;
 
 class Client {
-    private static int timeout = 60; // seconds
-    private static boolean readyToPlay = true; // supposed to change on the press of "start" button on screen
+    private static int timeout = 10; // seconds
 
     public static void main(String args[]) throws Exception {
         Variables.loadFromEnv();
 
         TelaCliente TC = new TelaCliente();
+        DatagramSocket clientSocketUdp;
+        TC.setVisible(true);
 
         while (true) {
-            DatagramSocket clientSocketUdp = new DatagramSocket(Variables.clientPortUdp);
+            Thread.sleep(8);
+            if (TC.getReadyToPlay()) {
+                clientSocketUdp = new DatagramSocket(Variables.clientPortUdp);
+                TC.setLog("");
 
-            if (readyToPlay) {
                 sendReadyStatus(clientSocketUdp);
 
                 String startLetter = receiveLetter(clientSocketUdp);
                 if (startLetter.startsWith("startLetter=")) {
                     String letter = startLetter.split("=")[1];
 
-                    TC.setVisible(true);
                     TC.setLetter(letter);
                     TC.clearAnswers();
 
                     waitAndSendAnswer(letter, TC);
 
                     clientSocketUdp.close();
+                    TC.setReadyToPlay(false);
+                    TC.setLog("Clique em \"ready\" para jogar. Esperando outros hosts confirmarem...");
                 }
             }
         }

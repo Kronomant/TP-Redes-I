@@ -11,6 +11,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 public class TelaCliente extends JFrame implements ActionListener {
+    private boolean readyToPlay = false;
 
     private JPanel contentPane;
     private JTextField txtNome;
@@ -25,10 +26,6 @@ public class TelaCliente extends JFrame implements ActionListener {
     private JTextArea timer;
     private JTextArea ranking;
     private JButton btnSalvar;
-    private JButton btnExcluir;
-    private JButton btnEditar;
-    private JButton btnPesquisar;
-    private JButton btnLimpar;
 
     public TelaCliente() {
         setTitle("Stop");
@@ -39,7 +36,7 @@ public class TelaCliente extends JFrame implements ActionListener {
         setContentPane(contentPane);
         contentPane.setLayout(null);
 
-        area = new JTextArea("batata");
+        area = new JTextArea("Clique em \"ready\" para jogar. Esperando outros hosts confirmarem...");
         area.setFont(new Font("Serif", Font.ITALIC, 12));
         area.setLineWrap(true);
         area.setWrapStyleWord(true);
@@ -169,7 +166,7 @@ public class TelaCliente extends JFrame implements ActionListener {
         contentPane.add(txtPais);
         txtPais.setColumns(10);
 
-        btnSalvar = new JButton("Enviar");
+        btnSalvar = new JButton("Ready");
         btnSalvar.setBounds(675, 203, 100, 23);
         btnSalvar.addActionListener(this);
         btnSalvar.setActionCommand("salvar");
@@ -205,9 +202,22 @@ public class TelaCliente extends JFrame implements ActionListener {
         letra.setText(letter);
     }
 
+    public void setReadyToPlay(boolean val) {
+        readyToPlay = val;
+    }
+
+    public boolean getReadyToPlay() {
+        return readyToPlay;
+    }
+    
+    public void setLog(String text) {
+        area.setText(text);
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals(this.btnSalvar.getActionCommand())) {
+            readyToPlay = true;
             // TODO
         }
     }
