@@ -3,16 +3,17 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ThreadLocalRandom;
+
+import view.TelaCliente;
 
 class Client {
-    private static int timeout = 5; // seconds
+    private static int timeout = 60; // seconds
     private static boolean readyToPlay = true; // supposed to change on the press of "start" button on screen
 
     public static void main(String args[]) throws Exception {
         Variables.loadFromEnv();
+
+        TelaCliente TC = new TelaCliente();
 
         while (true) {
             DatagramSocket clientSocketUdp = new DatagramSocket(Variables.clientPortUdp);
@@ -23,9 +24,13 @@ class Client {
                 String startLetter = receiveLetter(clientSocketUdp);
                 if (startLetter.startsWith("startLetter=")) {
                     String letter = startLetter.split("=")[1];
-                    System.out.println("Letra: " + letter);
 
-                    waitAndSendAnswer(letter);
+                    TC.setVisible(true);
+                    TC.setLetter(letter);
+                    TC.clearAnswers();
+
+                    waitAndSendAnswer(letter, TC);
+
                     clientSocketUdp.close();
                 }
             }
@@ -57,75 +62,37 @@ class Client {
         }
     }
 
-    private static void waitAndSendAnswer(String letter) throws InterruptedException {
-        GetAnswerThread getAnswerThread = new GetAnswerThread(letter);
-        getAnswerThread.start();
-
-        Timer timer = new Timer();
-        SendAnswerTask timeOutTask = new SendAnswerTask(getAnswerThread, timer);
-        timer.schedule(timeOutTask, 1000 * timeout);
+    private static void waitAndSendAnswer(String letter, TelaCliente tc) throws InterruptedException {
+        long lastTime = System.nanoTime();
 
         while (true) {
-            Thread.sleep(8); // dont know why, but this is needed
-            if (timeOutTask.isCompleted)
+            long time = System.nanoTime();
+            int deltaTime = (int) ((time - lastTime) / 1000000000);
+
+            if (tc.getCounter() != deltaTime) {
+                tc.setCounter(deltaTime);
+            }
+
+            if (deltaTime == timeout) {
+                try {
+                    String r = tc.getAnswers();
+                    Socket socket = new Socket(Variables.serverIp, Variables.serverPortTcp);
+
+                    DataOutputStream saida = new DataOutputStream(socket.getOutputStream());
+                    saida.writeBytes(r + '\n');
+
+                    BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    entrada.readLine();
+
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 break;
+            }
         }
-    }
-}
 
-class SendAnswerTask extends TimerTask {
-    private GetAnswerThread thread;
-    private Timer timer;
-    public boolean isCompleted;
-
-    public SendAnswerTask(GetAnswerThread thread, Timer timer) {
-        this.thread = thread;
-        this.timer = timer;
-    }
-
-    @Override
-    public void run() {
-        thread.interrupt();
-        timer.cancel();
-        try {
-            String r = "answer=" + thread.getAnswer();
-            System.out.println(r);
-            Socket socket = new Socket(Variables.serverIp, Variables.serverPortTcp);
-
-            DataOutputStream saida = new DataOutputStream(socket.getOutputStream());
-            saida.writeBytes(r + '\n');
-
-            BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            entrada.readLine();
-
-            socket.close();
-            thread.interrupt();
-            isCompleted = true;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
-
-class GetAnswerThread extends Thread {
-    private String letter;
-    private String answer;
-
-    public GetAnswerThread(String letter) {
-        this.letter = letter;
-    }
-
-    public String getAnswer() {
-        return answer;
-    }
-
-    @Override
-    public void run() {
-        try {
-            int randomNum = ThreadLocalRandom.current().nextInt(1000, 1000 * 10); // random processing time between 1 and 10 secs
-            Thread.sleep(randomNum);
-            answer = letter; // TODO: get values from user
-        } catch (InterruptedException e) {
-        }
+        return;
     }
 }
