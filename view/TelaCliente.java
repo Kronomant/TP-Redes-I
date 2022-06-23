@@ -214,6 +214,10 @@ public class TelaCliente extends JFrame implements ActionListener {
         area.setText(text);
     }
 
+    public void setRanking(String text) {
+        ranking.setText(text);
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals(this.btnSalvar.getActionCommand())) {

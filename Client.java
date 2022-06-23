@@ -14,34 +14,41 @@ class Client {
 
         TelaCliente TC = new TelaCliente();
         DatagramSocket clientSocketUdp;
+
+        TC.setCounter(timeout);
         TC.setVisible(true);
 
         while (true) {
             Thread.sleep(8);
             if (TC.getReadyToPlay()) {
                 clientSocketUdp = new DatagramSocket(Variables.clientPortUdp);
+
                 TC.setLog("");
 
                 sendReadyStatus(clientSocketUdp);
 
-                String startLetter = receiveLetter(clientSocketUdp);
+                String startLetter = receiveUdp(clientSocketUdp);
                 if (startLetter.startsWith("startLetter=")) {
                     String letter = startLetter.split("=")[1];
 
                     TC.setLetter(letter);
-                    TC.clearAnswers();
-
                     waitAndSendAnswer(letter, TC);
 
-                    clientSocketUdp.close();
                     TC.setReadyToPlay(false);
-                    TC.setLog("Clique em \"ready\" para jogar. Esperando outros hosts confirmarem...");
+                    String answers = receiveUdp(clientSocketUdp);
+                    String[] anwersRanking = answers.split("<<>>");
+
+                    TC.setLog(anwersRanking[0] + "\n\nClique em \"ready\" para jogar. Esperando outros hosts confirmarem...");
+                    TC.setRanking(anwersRanking[1]);
+                    TC.clearAnswers();
+
+                    clientSocketUdp.close();
                 }
             }
         }
     }
 
-    private static String receiveLetter(DatagramSocket clientSocket) {
+    private static String receiveUdp(DatagramSocket clientSocket) {
         byte[] receiveData = new byte[1024];
         DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
         try {
@@ -73,8 +80,8 @@ class Client {
             long time = System.nanoTime();
             int deltaTime = (int) ((time - lastTime) / 1000000000);
 
-            if (tc.getCounter() != deltaTime) {
-                tc.setCounter(deltaTime);
+            if (tc.getCounter() != (timeout - deltaTime)) {
+                tc.setCounter(timeout - deltaTime);
             }
 
             if (deltaTime == timeout) {

@@ -3,7 +3,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
-import java.security.KeyStore.Entry;
 import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -15,6 +14,7 @@ class Server {
         'W', 'X', 'Y', 'Z'
     };
     private static HashMap<String, String> answers = new HashMap<>();
+    private static HashMap<String, String> ranking = new HashMap<>();
 
     public static void main(String args[]) throws Exception {
         Variables.loadFromEnv();
@@ -26,13 +26,25 @@ class Server {
             sendLetter(serverSocketUdp);
             waitForAnswers();
             validateAnswers();
-            sendRankingAndAnswers();
+            sendRankingAndAnswers(serverSocketUdp);
 
             serverSocketUdp.close();
         }
     }
 
-    private static void sendRankingAndAnswers() {
+    private static void sendRankingAndAnswers(DatagramSocket socket) throws Exception {
+        InetAddress ipBroadcast = InetAddress.getByName(Variables.broadcastIp);
+
+        byte[] sendData = new byte[1024];
+        sendData = concatRankingAndAnswers().getBytes();
+
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipBroadcast, Variables.clientPortUdp);
+        socket.send(sendPacket);
+    }
+
+    private static String concatRankingAndAnswers() {
+        String r = answers.toString() + "<<>>" + ranking.toString();
+        return r;
     }
 
     private static void validateAnswers() {}
@@ -50,6 +62,7 @@ class Server {
             String hostName = conexao.getInetAddress().getCanonicalHostName(); 
             
             answers.put(hostName, str);
+            ranking.put(hostName, "20 pts");
 
             DataOutputStream saida = new DataOutputStream(conexao.getOutputStream());
             saida.writeBytes("ok");
@@ -59,8 +72,6 @@ class Server {
 
             numberOfAnswers += 1;
         }
-
-        System.out.println(answers);
     }
 
     private static void waitForAllPlayers(DatagramSocket socket) throws IOException {
@@ -76,7 +87,6 @@ class Server {
                 receivePacket.getOffset(),
                 receivePacket.getLength()
             );
-            System.out.println(playerStatus);
             if (playerStatus.startsWith("ready")) {
                 numberOfReadyPlayers += 1;
             }
@@ -94,6 +104,5 @@ class Server {
 
         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipBroadcast, Variables.clientPortUdp);
         socket.send(sendPacket);
-        System.out.println("Letra: " + randLetter);
     }
 }
