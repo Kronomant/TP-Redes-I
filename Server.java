@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
+import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 class Server {
@@ -12,6 +13,8 @@ class Server {
         'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
         'W', 'X', 'Y', 'Z'
     };
+    private static HashMap<String, String> answers = new HashMap<>();
+    private static HashMap<String, String> ranking = new HashMap<>();
 
     public static void main(String args[]) throws Exception {
         Variables.loadFromEnv();
@@ -22,25 +25,53 @@ class Server {
             waitForAllPlayers(serverSocketUdp);
             sendLetter(serverSocketUdp);
             waitForAnswers();
+            validateAnswers();
+            sendRankingAndAnswers(serverSocketUdp);
 
             serverSocketUdp.close();
         }
     }
 
+    private static void sendRankingAndAnswers(DatagramSocket socket) throws Exception {
+        InetAddress ipBroadcast = InetAddress.getByName(Variables.broadcastIp);
+
+        byte[] sendData = new byte[1024];
+        sendData = concatRankingAndAnswers().getBytes();
+
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipBroadcast, Variables.clientPortUdp);
+        socket.send(sendPacket);
+    }
+
+    private static String concatRankingAndAnswers() {
+        String r = answers.toString() + "<<>>" + ranking.toString();
+        return r;
+    }
+
+    private static void validateAnswers() {}
+
     private static void waitForAnswers() throws IOException {
-        ServerSocket socket = new ServerSocket(Variables.serverPortTcp);
+        int numberOfAnswers = 0;
 
-        Socket conexao = socket.accept();
-        BufferedReader entrada = new BufferedReader(new InputStreamReader(conexao.getInputStream()));
+        while (numberOfAnswers < numberOfExpectedPlayers) {
+            ServerSocket socket = new ServerSocket(Variables.serverPortTcp);
 
-        String str = entrada.readLine();
-        System.out.println("Resposta: " + str);
+            Socket conexao = socket.accept();
+            BufferedReader entrada = new BufferedReader(new InputStreamReader(conexao.getInputStream()));
 
-        DataOutputStream saida = new DataOutputStream(conexao.getOutputStream());
-        saida.writeBytes("ok");
+            String str = entrada.readLine();
+            String hostName = conexao.getInetAddress().getCanonicalHostName(); 
+            
+            answers.put(hostName, str);
+            ranking.put(hostName, "20 pts");
 
-        conexao.close();
-        socket.close();
+            DataOutputStream saida = new DataOutputStream(conexao.getOutputStream());
+            saida.writeBytes("ok");
+
+            conexao.close();
+            socket.close();
+
+            numberOfAnswers += 1;
+        }
     }
 
     private static void waitForAllPlayers(DatagramSocket socket) throws IOException {
@@ -51,9 +82,11 @@ class Server {
             DatagramPacket receivePacket = new DatagramPacket(receiveConfirmation, receiveConfirmation.length);
             socket.receive(receivePacket);
 
-            String playerStatus = new String(receivePacket.getData(), receivePacket.getOffset(),
-                    receivePacket.getLength());
-            System.out.println(playerStatus);
+            String playerStatus = new String(
+                receivePacket.getData(),
+                receivePacket.getOffset(),
+                receivePacket.getLength()
+            );
             if (playerStatus.startsWith("ready")) {
                 numberOfReadyPlayers += 1;
             }
@@ -71,6 +104,5 @@ class Server {
 
         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipBroadcast, Variables.clientPortUdp);
         socket.send(sendPacket);
-        System.out.println("Letra: " + randLetter);
     }
 }
