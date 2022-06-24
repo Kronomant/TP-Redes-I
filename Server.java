@@ -13,8 +13,10 @@ class Server {
         'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
         'W', 'X', 'Y', 'Z'
     };
-    private static HashMap<String, String> answers = new HashMap<>();
-    private static HashMap<String, String> ranking = new HashMap<>();
+    private static int correctAnswerPoints = 1;
+    private static char currentLetter;
+    private static HashMap<String, HashMap<String, String>> answers = new HashMap<>();
+    private static HashMap<String, Integer> ranking = new HashMap<>();
 
     public static void main(String args[]) throws Exception {
         Variables.loadFromEnv();
@@ -22,14 +24,19 @@ class Server {
         while (true) {
             DatagramSocket serverSocketUdp = new DatagramSocket(Variables.serverPortUdp);
 
+            resetAnswers();
             waitForAllPlayers(serverSocketUdp);
             sendLetter(serverSocketUdp);
             waitForAnswers();
-            validateAnswers();
+            checkForEqualAnswers();
             sendRankingAndAnswers(serverSocketUdp);
 
             serverSocketUdp.close();
         }
+    }
+
+    private static void resetAnswers() {
+        answers = new HashMap<>();
     }
 
     private static void sendRankingAndAnswers(DatagramSocket socket) throws Exception {
@@ -47,7 +54,7 @@ class Server {
         return r;
     }
 
-    private static void validateAnswers() {}
+    private static void checkForEqualAnswers() {}
 
     private static void waitForAnswers() throws IOException {
         int numberOfAnswers = 0;
@@ -58,12 +65,10 @@ class Server {
             Socket conexao = socket.accept();
             BufferedReader entrada = new BufferedReader(new InputStreamReader(conexao.getInputStream()));
 
-            String str = entrada.readLine();
+            String answer = entrada.readLine();
             String hostName = conexao.getInetAddress().getCanonicalHostName(); 
+            updateAnswersAndRanking(hostName, answer, String.valueOf(currentLetter));
             
-            answers.put(hostName, str);
-            ranking.put(hostName, "20 pts");
-
             DataOutputStream saida = new DataOutputStream(conexao.getOutputStream());
             saida.writeBytes("ok");
 
@@ -72,6 +77,30 @@ class Server {
 
             numberOfAnswers += 1;
         }
+    }
+
+    private static void updateAnswersAndRanking(String host, String answer, String letter) {
+        String[] _answers = answer.split("&");
+        HashMap<String, String> answerEntry = new HashMap<>();
+
+        for (String _answer : _answers) {
+            String[] keyVal = _answer.split("=");
+
+            if (keyVal.length == 2) {
+                answerEntry.put(keyVal[0], keyVal[1]);
+
+                if (keyVal[1].toUpperCase().startsWith(letter)) {
+                    Integer existingRank = ranking.get(host);
+                    if (existingRank != null) {
+                        ranking.put(host, existingRank + correctAnswerPoints);
+                    } else {
+                        ranking.put(host, correctAnswerPoints);
+                    }
+                }
+            }
+        }
+
+        answers.put(host, answerEntry);
     }
 
     private static void waitForAllPlayers(DatagramSocket socket) throws IOException {
@@ -98,6 +127,7 @@ class Server {
 
         int randomNum = ThreadLocalRandom.current().nextInt(0, alphabet.length);
         char randLetter = alphabet[randomNum];
+        currentLetter = randLetter;
 
         byte[] sendData = new byte[1024];
         sendData = ("startLetter=" + randLetter).getBytes();

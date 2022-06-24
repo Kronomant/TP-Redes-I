@@ -81,7 +81,7 @@ public class TelaCliente extends JFrame implements ActionListener {
 
         contentPane.add(timer);
 
-        ranking = new JTextArea("Zezin 50 pts\nFulano 40 pts \nCiclano 30 pts \nCiclano 30 pts");
+        ranking = new JTextArea("");
         ranking.setFont(new Font("Serif", Font.ITALIC, 12));
         ranking.setLineWrap(true);
         ranking.setWrapStyleWord(true);
