@@ -24,7 +24,6 @@ class Client {
                 clientSocketUdp = new DatagramSocket(Variables.clientPortUdp);
 
                 TC.setLog("");
-
                 sendReadyStatus(clientSocketUdp);
 
                 String startLetter = receiveUdp(clientSocketUdp);
@@ -36,16 +35,20 @@ class Client {
 
                     TC.setReadyToPlay(false);
                     String answers = receiveUdp(clientSocketUdp);
-                    String[] anwersRanking = answers.split("<<>>");
-
-                    TC.setLog(anwersRanking[0] + "\n\nClique em \"ready\" para jogar. Esperando outros hosts confirmarem...");
-                    TC.setRanking(anwersRanking[1]);
-                    TC.clearAnswers();
+                    displayAnswersAndRanking(TC, answers);
 
                     clientSocketUdp.close();
                 }
             }
         }
+    }
+
+    private static void displayAnswersAndRanking(TelaCliente TC, String answers) {
+        String[] anwersRanking = answers.split("<<>>");
+
+        TC.setLog(anwersRanking[0] + "\n\nClique em \"ready\" para jogar. Esperando outros hosts confirmarem...");
+        TC.setRanking(anwersRanking[1]);
+        TC.clearAnswers();
     }
 
     private static String receiveUdp(DatagramSocket clientSocket) {
