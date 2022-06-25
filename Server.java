@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 class Server {
-    private static int numberOfExpectedPlayers = 1;
+    private static int numberOfExpectedPlayers = 2;
     private static char[] alphabet = new char[] {
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
         'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
