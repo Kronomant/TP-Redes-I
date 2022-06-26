@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.concurrent.ThreadLocalRandom;
 
 class Server {
-    private static int numberOfExpectedPlayers = 2;
+    private static int numberOfExpectedPlayers = 3;
     private static char[] alphabet = new char[] {
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
         'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
@@ -50,7 +51,12 @@ class Server {
     }
 
     private static String concatRankingAndAnswers() {
-        String r = answers.toString() + "<<>>" + ranking.toString();
+        String _answers = "";
+        for (Entry<String, HashMap<String, String>> answer : answers.entrySet()) {
+            _answers += answer.toString() + "\n";
+
+        }
+        String r = _answers + "<<>>" + ranking.toString();
         return r;
     }
 

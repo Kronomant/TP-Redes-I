@@ -7,7 +7,7 @@ import java.net.*;
 import view.TelaCliente;
 
 class Client {
-    private static int timeout = 10; // seconds
+    private static int timeout = 20; // seconds
 
     public static void main(String args[]) throws Exception {
         Variables.loadFromEnv();
